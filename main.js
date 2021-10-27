@@ -142,56 +142,10 @@ createDictionary()
 addMeanEncodingsToTracks()
 var albumColorMap = createAlbumColorMap()
 
-var landmarkWords = ["submarine"];
+var landmarkWords = ["love", "hate"];
 
-var distances = calculateTrackDistances(landmarkWords)
-
-var nodes = Array.from({ length: NUM_TRACKS + landmarkWords.length }, (v, i) => {
-    let node = {
-        "index": i,
-        "special": false
-    }
-    return node
-})
-
-for (let i = 0; i < landmarkWords.length; i++) {
-    nodes[NUM_TRACKS + i]["special"] = true
-}
-
-var links = []
-for (let i = 0; i < landmarkWords.length; i++) {
-    for (let trackIndex = 0; trackIndex < NUM_TRACKS; trackIndex++){
-        let link = {
-            "source": trackIndex,
-            "target": NUM_TRACKS + i
-        }
-        links.push(link)
-    }
-}
-
-var forceLink = d3.forceLink(links)
-    .distance((link) => {
-        let d = 1 - distances[link.source.index]["sim"][link.target.index - NUM_TRACKS]
-        let distance = 5 + (400 * (d * d))
-        // console.log(d, distance, distances[link.source.index])
-        return distance
-    })
-// .strength(1)
-
-var forceNode = d3.forceManyBody()
-    .strength(-100)
-
-var force = d3.forceSimulation(nodes)
-    .force("link", forceLink)
-    .force("center", d3.forceCenter())
-    .force("charge", forceNode)
-    .on("tick", () => {
-        ticked()
-    })
-// .stop()
-
-
-// ================================= copied ======================================
+var link;
+var node;
 
 var width = 800;
 var height = 800;
@@ -202,35 +156,113 @@ svg
     .attr("viewBox", [-width / 2, -height / 2, width, height])
     .attr("style", "max-width: 100%; height: auto; height: intrinsic;");
 
-const link = svg.append("g")
-    .attr("stroke", "#999")
-    .attr("stroke-width", 1)
-    .attr("opacity", 0.1)
-    .selectAll("line")
-    .data(links)
-    .join("line");
+function doMain(){
+    // Clean up
+    svg.html("")
 
-const node = svg.append("g")
-    .attr("fill", "red")
-    .selectAll("circle")
-    .data(nodes)
-    .join("circle")
-    .attr("r", (d) => {
-        if (d.special) {
-            return 20;
+    // Start for real
+    var distances = calculateTrackDistances(landmarkWords)
+
+    var nodes = Array.from({ length: NUM_TRACKS + landmarkWords.length }, (v, i) => {
+        let node = {
+            "index": i,
+            "special": false
         }
-        return 5;
+        return node
     })
-    .attr("fill", (d) => {
-        if (d.special) {
-            return "red"
-        } else {
-            return albumColorMap[tracks[d.index]["album"]]
+
+    for (let i = 0; i < landmarkWords.length; i++) {
+        nodes[NUM_TRACKS + i]["special"] = true
+        // nodes[NUM_TRACKS + i]["x"] = 0;
+        // nodes[NUM_TRACKS + i]["y"] = 0;
+    }
+
+    var links = []
+    for (let i = 0; i < landmarkWords.length; i++) {
+        for (let trackIndex = 0; trackIndex < NUM_TRACKS; trackIndex++){
+            let link = {
+                "source": trackIndex,
+                "target": NUM_TRACKS + i,
+                "word2word": false
+            }
+            links.push(link)
         }
-    })
-    .on("mouseover", (event, d) => {
-        updateTooltip(event, d)
-    })
+    }
+
+    for (let i = 0; i < landmarkWords.length; i++) {
+        for (let j = 0; j < landmarkWords.length; j++) {
+            if (i != j) {
+                let link = {
+                    "source": i + NUM_TRACKS,
+                    "target": j + NUM_TRACKS, 
+                    "word2word": true,
+                }
+                links.push(link)
+            }
+        }
+   }
+
+    var forceLink = d3.forceLink(links)
+        .distance((link) => {
+            console.log(link)
+            let d = 0;
+            if (link.word2word) {
+                d = 1 - meaningSim(landmarkWords[link.source.index - NUM_TRACKS], landmarkWords[link.target.index - NUM_TRACKS])
+                console.log(landmarkWords[link.source.index - NUM_TRACKS], landmarkWords[link.target.index - NUM_TRACKS], d)
+            } else {
+                d = 1 - distances[link.source.index]["sim"][link.target.index - NUM_TRACKS]
+            }
+            let distance = 5 + (400 * (d * d))
+            return distance
+        })
+    // .strength(1)
+
+    var forceNode = d3.forceManyBody()
+        .strength(-100)
+
+    var force = d3.forceSimulation(nodes)
+        .force("link", forceLink)
+        .force("center", d3.forceCenter())
+        .force("charge", forceNode)
+        .on("tick", () => {
+            ticked()
+        })
+    // .stop()
+
+
+    // ================================= main d3 stuff ======================================
+
+
+    link = svg.append("g")
+        .attr("stroke", "#999")
+        .attr("stroke-width", 1)
+        .attr("opacity", 0.1)
+        .selectAll("line")
+        .data(links)
+        .join("line");
+
+    node = svg.append("g")
+        .attr("fill", "red")
+        .selectAll("circle")
+        .data(nodes)
+        .join("circle")
+        .attr("r", (d) => {
+            if (d.special) {
+                return 20;
+            }
+            return 5;
+        })
+        .attr("fill", (d) => {
+            if (d.special) {
+                return "red"
+            } else {
+                return albumColorMap[tracks[d.index]["album"]]
+            }
+        })
+        .on("mouseover", (event, d) => {
+            updateTooltip(event, d)
+        })
+}
 
 function ticked() {
     link
@@ -243,3 +275,26 @@ function ticked() {
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
 }
+
+// ================================= UI / tag editor ======================================
+var actionTypeTagEditor;
+function initializeTagEditor(){
+    actionTypeTagEditor = $('#action-type-tag-area').tagEditor({
+        forceLowercase : false,
+        sortable: false,
+        initialTags: landmarkWords,
+        beforeTagSave: (field, editor, tags, tag, val) => {
+            // console.log(field, editor, tags, tag, val)
+            if (!dictionary.hasOwnProperty(val)){
+                return false;
+            }
+        },
+        onChange: (field, editor, tags) => {
+            landmarkWords = tags
+            doMain()
+        }
+    })
+}
+initializeTagEditor();
+
+doMain()

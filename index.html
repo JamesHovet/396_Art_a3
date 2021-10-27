@@ -2,6 +2,14 @@
 <html>
 <meta charset="utf-8">
 <head>
+<script
+			  src="https://code.jquery.com/jquery-3.6.0.min.js"
+			  integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+			  crossorigin="anonymous"></script>
+<!-- <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"> -->
+<link rel="stylesheet" href="./jquery.tag-editor.css">
+<script src="./jquery.caret.min.js"></script>
+<script src="./jquery.tag-editor.min.js"></script>
 </head>
 <style>
 div.tooltip {	
@@ -15,9 +23,22 @@ div.tooltip {
     border-radius: 8px;
     pointer-events: none;
 }
+
+.tag-editor {
+    border: 1px solid black;
+}
 </style>
 <body>
+<h1>A Map of Beatles Songs</h1>
+<h2>Average Encodings of Beatles songs organized by their distance to landmark words:</h2>
+<p>hover for more</p>
 <svg id="svg" width="800" height="800"></svg>
+<h4>Landmarks: (Click to type more)</h4>
+<div style="border: 33px; background-color: lightgrey;">
+    <div>
+        <textarea id="action-type-tag-area"></textarea>
+    </div>
+</div>
 </body>
 <script src="https://d3js.org/d3.v6.min.js"></script>
 <script src="./all_words_subtlex_xsmall.js"></script>
