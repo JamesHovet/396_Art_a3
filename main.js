@@ -218,7 +218,7 @@ function doMain(){
     // .strength(1)
 
     var forceNode = d3.forceManyBody()
-        .strength(-100)
+        .strength(-50)
 
     var force = d3.forceSimulation(nodes)
         .force("link", forceLink)
@@ -262,6 +262,7 @@ function doMain(){
         .on("mouseover", (event, d) => {
             updateTooltip(event, d)
         })
+        .call(drag(force))
 }
 
 function ticked() {
@@ -275,6 +276,31 @@ function ticked() {
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
 }
+
+function drag(simulation) {    
+    function dragstarted(event) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      event.subject.fx = event.subject.x;
+      event.subject.fy = event.subject.y;
+    }
+    
+    function dragged(event) {
+      event.subject.fx = event.x;
+      event.subject.fy = event.y;
+    }
+    
+    function dragended(event) {
+      if (!event.active) simulation.alphaTarget(0);
+      event.subject.fx = null;
+      event.subject.fy = null;
+    }
+    
+    return d3.drag()
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended);
+  }
+
 
 // ================================= UI / tag editor ======================================
 var actionTypeTagEditor;
