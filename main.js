@@ -121,7 +121,7 @@ var tooltipDiv = d3.select("body").append("div")
     .style("opacity", 0);
 
 function updateTooltip(event, d) {
-    console.log()
+    // console.log()
     tooltipDiv.transition()
         .duration(200)
         .style("opacity", .9);
@@ -130,10 +130,13 @@ function updateTooltip(event, d) {
         .style("left", (event.pageX) + "px")
         .style("top", (event.pageY - 28) + "px");
     if (d.special) {
-        tooltipDiv.html(landmarkWords[d.index - NUM_TRACKS])
+        tooltipDiv.html("")
+        tooltipDiv.style("display", "none")
+        // tooltipDiv.html(landmarkWords[d.index - NUM_TRACKS])
     } else {
         let track = tracks[d.index]
         tooltipDiv.html(track.title + "<br>" + track.album)
+        tooltipDiv.style("display", "block")
     }
 }
 // ================================= main ======================================
@@ -146,9 +149,11 @@ var landmarkWords = ["love", "hate"];
 
 var link;
 var node;
+var circles;
+var labels;
 
 var width = 800;
-var height = 800;
+var height = 700;
 
 svg
     .attr("width", width)
@@ -204,11 +209,11 @@ function doMain(){
 
     var forceLink = d3.forceLink(links)
         .distance((link) => {
-            console.log(link)
+            // console.log(link)
             let d = 0;
             if (link.word2word) {
                 d = 1 - meaningSim(landmarkWords[link.source.index - NUM_TRACKS], landmarkWords[link.target.index - NUM_TRACKS])
-                console.log(landmarkWords[link.source.index - NUM_TRACKS], landmarkWords[link.target.index - NUM_TRACKS], d)
+                // console.log(landmarkWords[link.source.index - NUM_TRACKS], landmarkWords[link.target.index - NUM_TRACKS], d)
             } else {
                 d = 1 - distances[link.source.index]["sim"][link.target.index - NUM_TRACKS]
             }
@@ -243,9 +248,12 @@ function doMain(){
 
     node = svg.append("g")
         .attr("fill", "red")
-        .selectAll("circle")
+        .selectAll("g")
         .data(nodes)
-        .join("circle")
+        .join("g")
+        .call(drag(force))
+    
+    circles = node.append("circle")
         .attr("r", (d) => {
             if (d.special) {
                 return 20;
@@ -262,7 +270,17 @@ function doMain(){
         .on("mouseover", (event, d) => {
             updateTooltip(event, d)
         })
-        .call(drag(force))
+
+    labels = node.append("text")
+        .text((d) => {
+            if (d.special) {
+                return landmarkWords[d.index - NUM_TRACKS]
+            }
+            return ""
+        })
+        .attr("x", -10)
+        .attr("y", 5)
+        .attr("fill", "black")
 }
 
 function ticked() {
@@ -273,8 +291,8 @@ function ticked() {
         .attr("y2", d => d.target.y);
 
     node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
+        .attr("transform", d => "translate(" + d.x +"," + d.y + ")")
+        // .attr("y", d => d.y);
 }
 
 function drag(simulation) {    
